@@ -1,0 +1,3 @@
+<app-block-header [blockHeader]="rpcBlock?.header"></app-block-header>
+
+<app-prevotes *ngFor="let round of rounds" [prevotes]="getPrevotes(round)"></app-prevotes>

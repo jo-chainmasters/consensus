@@ -1,0 +1,12 @@
+
+<p-card *ngIf="blockHeader" header="{{blockHeader.height}} - {{blockHeader.hash}}">
+  chain-id: {{blockHeader.chain_id}}
+  timestamp: {{blockHeader.time}}
+  proposer: {{blockHeader.proposer_address}}
+  round: TODO
+  validators-hash: {{blockHeader.validators_hash}}
+
+  <p-card header="DEBUG">
+    <pre>{{blockHeader | json}}</pre>
+  </p-card>
+</p-card>

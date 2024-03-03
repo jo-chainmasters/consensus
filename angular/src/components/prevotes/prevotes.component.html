@@ -1,0 +1,14 @@
+<p-table [value]="prevotes">
+
+  <ng-template pTemplate="header">
+    <tr>
+      <th>Validator</th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-prevote>
+    <tr>
+      <td>{{prevote.validator}}</td>
+    </tr>
+  </ng-template>
+</p-table>
