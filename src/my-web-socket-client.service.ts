@@ -139,7 +139,8 @@ export class MyWebSocketClient {
         round: Number(message.result.data.value.Vote.round),
         block: message.result.data.value.Vote.block_id.hash,
         timestamp: new Date(message.result.data.value.Vote.timestamp).getTime(),
-        validator: message.result.data.value.Vote.validator_address,
+        validatorHash: message.result.data.value.Vote.validator_address,
+        validatorIndex: Number(message.result.data.value.Vote.validator_index),
       };
       // this.logger.log(
       //   `Vote             : height: ${vote.height}, round: ${vote.round}, type: ${vote.type}, block: ${vote.block}, timestamp: ${new Date(vote.timestamp)}, validator: ${vote.validator}`,
