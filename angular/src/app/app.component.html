@@ -1,3 +1,24 @@
 <app-block-header [blockHeader]="rpcBlock?.header"></app-block-header>
 
-<app-prevotes *ngFor="let round of rounds" [prevotes]="getPrevotes(round)"></app-prevotes>
+<p-treeTable [value]="bla">
+
+  <ng-template pTemplate="header">
+    <tr>
+      <td>Round</td>
+      <td>Validator</td>
+      <td>Timestamp</td>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-rowNode let-rowData="rowData">
+    <tr [ttRow]="rowNode">
+      <td>
+        <p-treeTableToggler [rowNode]="rowNode"></p-treeTableToggler>
+        bla
+      </td>
+      <td>{{ rowData.validator }}</td>
+      <td>{{ rowData.timestamp }}</td>
+    </tr>
+  </ng-template>
+</p-treeTable>
+
