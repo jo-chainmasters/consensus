@@ -3,7 +3,7 @@ import { WebSocket } from 'ws';
 import { Connection } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
 
-const wsUrl = 'wss://rpc1.unification.io/websocket';
+const wsUrl = 'wss://rpc.unification.chainmasters.ninja/websocket';
 
 @Injectable()
 export class MyWebSocketClient {
@@ -165,9 +165,9 @@ export class MyWebSocketClient {
       this.sendMessage(this.subscribeVote);
       this.sendMessage(this.subscribeNewRound);
       this.sendMessage(this.subscribeCompleteProposal);
-      // this.sendMessage(this.subscribeCompletePolka);
+      this.sendMessage(this.subscribeCompletePolka);
       this.sendMessage(this.subscribeTimeoutPropose);
-      // this.sendMessage(this.subscribeValidBlock);
+      this.sendMessage(this.subscribeValidBlock);
     });
 
     this.client.on('message', (data: WebSocket.Data) => {
