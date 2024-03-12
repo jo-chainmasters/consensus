@@ -5,6 +5,7 @@
 
 angular/.angular
 angular/node_modules
+client/browser/*
 
 # Logs
 logs
