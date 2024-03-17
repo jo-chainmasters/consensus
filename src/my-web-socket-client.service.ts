@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { WebSocket } from 'ws';
 import { Connection } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
-import { Block, Vote } from "./model/Block";
+import { Block, Vote } from './model/Block';
 
 const wsUrl = 'wss://rpc.unification.chainmasters.ninja/websocket';
 const rpcUrl = 'https://rpc.unification.chainmasters.ninja:443';
@@ -96,7 +96,7 @@ export class MyWebSocketClient {
       if (newRoundStep.step === 'RoundStepNewHeight') {
         this.blocks[newRoundStep.height] = {
           height: newRoundStep.height,
-          rounds: {}
+          rounds: {},
         };
 
         const pHeight = newRoundStep.height - 2;
@@ -108,14 +108,17 @@ export class MyWebSocketClient {
         `NewRound         : height: ${message.result.data.value.height}, round: ${message.result.data.value.round}, step: ${message.result.data.value.step}, validator: ${message.result.data.value.proposer.address}`,
       );
 
-      if(this.blocks[message.result.data.value.height]) {
-        this.blocks[message.result.data.value.height].rounds[message.result.data.value.round] = {
+      if (this.blocks[message.result.data.value.height]) {
+        this.blocks[message.result.data.value.height].rounds[
+          message.result.data.value.round
+        ] = {
           prevotes: [],
           precommits: [],
-          commits: []
+          commits: [],
+          prevote: [],
+          precommit: [],
         };
       }
-
     } else if (message.result.query === "tm.event='CompleteProposal'") {
       this.logger.log(
         `CompleteProposal : height: ${message.result.data.value.height}, round: ${message.result.data.value.round}, step: ${message.result.data.value.step}, block: ${message.result.data.value.block_id.hash}`,
@@ -154,30 +157,27 @@ export class MyWebSocketClient {
       // );
 
       if (this.blocks[vote.height]) {
-
         switch (vote.type) {
           case 'prevote':
             break;
           case 'precommit':
         }
-
       }
 
-      if(this.blocks[vote.height]) {
-
+      if (this.blocks[vote.height]) {
         if (!this.blocks[vote.height].rounds[vote.round][vote.type]) {
           this.blocks[vote.height].rounds[vote.round][vote.type] = [];
         }
 
-        (this.blocks[vote.height].rounds[vote.round][vote.type]).push({
+        this.blocks[vote.height].rounds[vote.round][vote.type].push({
           blockHash: vote.block,
           timestamp: vote.timestamp,
           validatorHash: vote.validatorHash,
-          validatorIndex: vote.validatorIndex
+          validatorIndex: vote.validatorIndex,
         } as Vote);
       }
     } else {
-      console.log(message);
+      console.log('Messenge', message);
     }
   }
 

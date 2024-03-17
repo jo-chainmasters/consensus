@@ -1,52 +1,59 @@
-import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { TableModule } from 'primeng/table';
-import { HttpClient } from '@angular/common/http';
-import { forkJoin, timestamp } from 'rxjs';
-import { BlockHeaderComponent } from '../components/block-header/block-header.component';
-import { PrevotesComponent } from '../components/prevotes/prevotes.component';
-import { TreeTableModule } from 'primeng/treetable';
-import { TreeNode } from 'primeng/api';
+import { Component, OnInit } from "@angular/core";
+import { RouterOutlet } from "@angular/router";
+import { TableModule } from "primeng/table";
+import { HttpClient } from "@angular/common/http";
+import { forkJoin } from "rxjs";
+import { BlockHeaderComponent } from "../components/block-header/block-header.component";
+import { PrevotesComponent } from "../components/prevotes/prevotes.component";
+import { TreeTableModule } from "primeng/treetable";
+import { TreeNode } from "primeng/api";
 
-const baseUrlApp = 'http://localhost:4000/blocks/';
-const baseUrlRpc = 'https://rpc1.unification.io/';
-const baseUrlRest = 'https://rest.unification.io/';
+const baseUrlApp = "http://localhost:4000/blocks/";
+const baseUrlRpc = "https://rpc1.unification.io/";
+const baseUrlRest = "https://rest.unification.io/";
 
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   standalone: true,
   imports: [
     RouterOutlet,
     TableModule,
     BlockHeaderComponent,
     PrevotesComponent,
-    TreeTableModule,
+    TreeTableModule
   ],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  templateUrl: "./app.component.html",
+  styleUrl: "./app.component.css"
 })
 export class AppComponent implements OnInit {
-  title = 'angular-test';
+  title = "angular-test";
 
   block: any;
   rpcBlock: any;
   _rounds: string[] = [];
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+  }
 
   ngOnInit(): void {
-    const obsConsensus = this.getConsensus(9522614);
-    const obsCommit = this.getCommits(9522614);
+    const obsConsensus = this.getConsensus(9687600);
+    const obsCommit = this.getCommits(9687600);
 
     forkJoin([obsConsensus, obsCommit]).subscribe((result: any[]) => {
+      console.log('forkJoin.result:', result);
       this.block = result[0];
       this.rpcBlock = result[1].result.signed_header;
-      this._rounds = Object.keys(this.block.votes.prevote);
+      this._rounds = Object.keys(this.block.rounds[0].prevote); //  wenn mehrere Rounden stattfinden
+
+      console.log('forkJoin.block:', result[0]);
+      console.log('forkJoin.rpcBlock:', result[1]);
+      console.log('forkJoin._rounds:', this._rounds);
     });
   }
 
   get bla() {
-    const rounds = [];
+    console.log('bla._rounds:', this._rounds);
+    const rounds: TreeNode[] = [];
     for (const round of this._rounds) {
       const node: TreeNode = {
         data: {
@@ -54,18 +61,24 @@ export class AppComponent implements OnInit {
           timestamp: 'timestamp',
           type: 'Folder',
         },
-        children: [],
+        children: []
       };
       rounds.push(node);
 
-      const steps = ['prevote', 'precommit', 'commit'];
+      const steps = [
+        "prevote",
+        "precommit",
+        "commit",
+        "prevotes",
+        "precommits"
+      ];
       for (const step of steps) {
         const stepNode: TreeNode = {
           data: {
-            validator: step,
-            timestamp: 'timestamp',
+            validator: "step",
+            timestamp: "timestamp"
           },
-          children: [],
+          children: []
         };
         node.children?.push(stepNode);
       }
@@ -80,7 +93,7 @@ export class AppComponent implements OnInit {
       // }
     }
 
-    console.log(rounds);
+    console.log("rounds-ui:", rounds);
     return rounds;
   }
 
@@ -105,7 +118,7 @@ export class AppComponent implements OnInit {
   }
 
   private getCommits(blockHeight: number) {
-    return this.getHttp(baseUrlRpc + 'commit?height=' + blockHeight);
+    return this.getHttp(baseUrlRpc + "commit?height=" + blockHeight);
   }
 
   private getHttp(url: string) {

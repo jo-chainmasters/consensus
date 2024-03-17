@@ -1,6 +1,6 @@
 export interface Block {
   height: number;
-  rounds: {[key: number]: Round },
+  rounds: { [key: number]: Round };
 }
 
 export interface Vote {
@@ -10,20 +10,16 @@ export interface Vote {
   validatorIndex: number;
 }
 
-export interface Prevote extends Vote {
+export interface Prevote extends Vote {}
 
-}
+export interface Precommit extends Vote {}
 
-export interface Precommit extends Vote {
-
-}
-
-export interface Commit extends Vote {
-
-}
+export interface Commit extends Vote {}
 
 export interface Round {
   prevotes: Prevote[];
   precommits: Precommit[];
   commits: Commit[];
+  prevote: Prevote[];
+  precommit: Precommit[];
 }
