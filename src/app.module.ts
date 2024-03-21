@@ -6,9 +6,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { BlockController } from './BlockController';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
+    HttpModule,
     MongooseModule.forRoot('mongodb://localhost/test-db'),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'client', 'browser'),
