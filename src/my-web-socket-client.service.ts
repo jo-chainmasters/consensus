@@ -1,4 +1,3 @@
-
 import { Injectable, Logger } from "@nestjs/common";
 import { WebSocket } from "ws";
 import { Connection } from "mongoose";
@@ -6,10 +5,7 @@ import { InjectConnection } from "@nestjs/mongoose";
 import { Block, CommitType, Vote } from "./model/Block";
 import { HttpService } from "@nestjs/axios";
 import { map } from "rxjs";
-import { fromBase64, fromHex, toBase64, toBech32, toHex } from "@cosmjs/encoding";
-import { encodeBech32Pubkey } from "@cosmjs/launchpad";
-
-
+import { fromBase64, fromHex, toBech32 } from "@cosmjs/encoding";
 
 
 const wsUrl = "wss://rpc.unification.chainmasters.ninja/websocket";
@@ -90,7 +86,6 @@ export class MyWebSocketClient {
 
           this.getHistoricalValidatorSetAtHeight(height).subscribe(hist => {
 
-
             //     block.rounds[cosmosBlock.block.last_commit.round].commits = [];
             for (
               let i = 0;
@@ -100,6 +95,7 @@ export class MyWebSocketClient {
               const signature = cosmosBlock.block.last_commit.signatures[i];
               const validator = this.getValidatorByConsensusAddress(validators, toBech32("undvalcons", fromBase64(signature.validator_address)));
               const validatorHist = this.getValidatorDetailsFromHistorical(hist, validator.pub_key);
+
 
               block.rounds[cosmosBlock.block.last_commit.round].commits.push({
                 blockHash: Buffer.from(
@@ -113,6 +109,25 @@ export class MyWebSocketClient {
                 commitType: this.valueOfCommitType(signature.block_id_flag)
               });
             }
+
+
+            const rounds = Object.keys(block.rounds);
+            for (let roundNumber of rounds) {
+              const round = block.rounds[Number(roundNumber)];
+              for (let i = 0; i < round.prevotes.length; i++) {
+                const prevote = round.prevotes[i];
+                const consensusAddress = this.validatorHashToConsensusAddress(prevote.validatorHash);
+                const someVali = this.getValidatorByConsensusAddress(block.validatorSet, consensusAddress);
+                block.rounds[Number(roundNumber)].prevotes[i].validatorDetails = this.getValidatorDetailsFromHistorical(hist, someVali.pub_key)
+              }
+              for (let i = 0; i < round.precommits.length; i++) {
+                const precommit = round.precommits[i];
+                const consensusAddress = this.validatorHashToConsensusAddress(precommit.validatorHash);
+                const someVali = this.getValidatorByConsensusAddress(block.validatorSet, consensusAddress);
+                block.rounds[Number(roundNumber)].precommits[i].validatorDetails = this.getValidatorDetailsFromHistorical(hist, someVali.pub_key)
+              }
+            }
+
             const collection = this.connection.collection("consensus");
             collection.insertOne(block).then();
           });
@@ -290,18 +305,10 @@ export class MyWebSocketClient {
         return CommitType.UNKNOWN;
     }
   }
+
+  validatorHashToConsensusAddress(hash: string) {
+    const bech32Prefix = "undvalcons";
+    const bech32Pubkey = toBech32(bech32Prefix, fromHex(hash));
+    return bech32Pubkey;
+  }
 }
-
-// // Beispiel Hex-Hash
-// const validatorHashHex = "04652EBFABB956B7CD53AB6491BBFF3281931296";
-// const pubkeyBytes = fromHex(validatorHashHex);
-// const pubkey = {
-//   type: '/cosmos.crypto.ed25519.PubKey',
-//   value: fromHex(validatorHashHex)
-// };
-// const bech32Prefix = "undvalconspub";
-// const bech32Pubkey = encodeBech32Pubkey(pubkey, bech32Prefix).toString();
-// console.log(bech32Pubkey); // Ausgabe: undvalconspub1zcjduepqcdav5ylt2zst90qmuh8e5w07xmxv9y6wufp5k9ngzmx7v9qewqtqkcq4z8
-
-
-

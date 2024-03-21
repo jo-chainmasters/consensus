@@ -9,6 +9,7 @@ export interface Vote {
   timestamp: number;
   blockHash?: string;
   validatorMoniker?: string;
+  validatorDetails?: any;
 }
 
 export interface Pre extends Vote {
@@ -25,7 +26,6 @@ export interface Precommit extends Pre {
 }
 
 export interface Commit extends Vote {
-  validatorDetails: any;
   commitType: CommitType;
 }
 
