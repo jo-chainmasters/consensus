@@ -20,12 +20,19 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@chainmasters/unification-client-v2": "^0.0.19",
+    "@cosmjs/crypto": "^0.32.3",
+    "@cosmjs/encoding": "^0.32.3",
+    "@cosmjs/launchpad": "^0.27.1",
+    "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/mongoose": "^10.0.4",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/serve-static": "^4.0.1",
     "@nestjs/websockets": "^10.3.3",
+    "axios": "^1.6.8",
+    "crypto-js": "^4.2.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "ws": "^8.16.0"
