@@ -1,19 +1,29 @@
-import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { TableModule } from 'primeng/table';
-import { HttpClient } from '@angular/common/http';
-import { forkJoin, timestamp } from 'rxjs';
-import { BlockHeaderComponent } from '../components/block-header/block-header.component';
-import { PrevotesComponent } from '../components/prevotes/prevotes.component';
-import { TreeTableModule } from 'primeng/treetable';
-import { TreeNode } from 'primeng/api';
+import { Component, OnInit } from "@angular/core";
+import { RouterOutlet } from "@angular/router";
+import { TableModule } from "primeng/table";
+import { HttpClient } from "@angular/common/http";
+import { forkJoin } from "rxjs";
+import { BlockHeaderComponent } from "../components/block-header/block-header.component";
+import { PrevotesComponent } from "../components/prevotes/prevotes.component";
+import { TreeTableModule, TreeTableNodeExpandEvent } from "primeng/treetable";
+import { TreeNode } from "primeng/api";
+import { InputTextModule } from "primeng/inputtext";
+import { FormsModule } from "@angular/forms";
+import { ButtonModule } from "primeng/button";
+import { Round, Vote } from "../../../src/model/Block";
+import { NgForOf, NgIf } from "@angular/common";
 
-const baseUrlApp = 'http://localhost:4000/blocks/';
-const baseUrlRpc = 'https://rpc1.unification.io/';
-const baseUrlRest = 'https://rest.unification.io/';
+const baseUrlApp = "http://localhost:4000/blocks/";
+const baseUrlRpc = "https://rpc1.unification.io/";
+const baseUrlRest = "https://rest.unification.io/";
+
+interface Column {
+  field: string;
+  header: string;
+}
 
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   standalone: true,
   imports: [
     RouterOutlet,
@@ -21,66 +31,86 @@ const baseUrlRest = 'https://rest.unification.io/';
     BlockHeaderComponent,
     PrevotesComponent,
     TreeTableModule,
+    InputTextModule,
+    FormsModule,
+    ButtonModule,
+    NgForOf,
+    NgIf
   ],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  templateUrl: "./app.component.html",
+  styleUrl: "./app.component.css"
 })
 export class AppComponent implements OnInit {
-  title = 'angular-test';
+  title = "angular-test";
 
   block: any;
   rpcBlock: any;
   _rounds: string[] = [];
+  inputBlockHeight = 9727991;
+  cols: Column[] = [];
+  treeTableValue: TreeNode[] =[];
 
-  constructor(private http: HttpClient) {}
-
-  ngOnInit(): void {
-    const obsConsensus = this.getConsensus(9522614);
-    const obsCommit = this.getCommits(9522614);
-
-    forkJoin([obsConsensus, obsCommit]).subscribe((result: any[]) => {
-      this.block = result[0];
-      this.rpcBlock = result[1].result.signed_header;
-      this._rounds = Object.keys(this.block.votes.prevote);
-    });
+  constructor(private http: HttpClient) {
   }
 
-  get bla() {
-    const rounds = [];
+  ngOnInit(): void {
+    this.cols = [
+      { field: "round", header: "Round" },
+      { field: "prevote", header: "prevote" },
+      { field: "precommit", header: "precommit" },
+      { field: "validatorHash", header: "validatorHash" },
+      { field: "blockHash", header: "blockHash" },
+      { field: "Timestamp", header: "Timestamp" },
+      { field: "validatorIndex", header: "validatorIndex" }
+    ];
+
+  }
+
+  get nodeHeightTree() {
+
+    const rounds: TreeNode[] = [];
+    let roundsVote: TreeNode[] = [];
+
     for (const round of this._rounds) {
-      const node: TreeNode = {
+      const nodeRound: TreeNode = {
+        key: round,
         data: {
-          validator: 'Round 0',
-          timestamp: 'timestamp',
-          type: 'Folder',
+          round: round,
+          prevote: "prevote",
+          precommit: "precommit",
+          validatorHash: "",
+          timestamp: "",
+          blockHash: "",
+          validatorIndex: ""
         },
         children: [],
+        expanded: Number(round) === 0
       };
-      rounds.push(node);
+      roundsVote = [];
+      for (const vote of this.getPrevotes(round)) {
 
-      const steps = ['prevote', 'precommit', 'commit'];
-      for (const step of steps) {
-        const stepNode: TreeNode = {
+        const nodeVote: TreeNode = {
+          key: round + "-" + vote.validatorIndex,
           data: {
-            validator: step,
-            timestamp: 'timestamp',
+            round: "",
+            prevote: "",
+            precommit: "",
+            validatorHash: vote.validatorHash.toString(),
+            timestamp: vote.timestamp,
+            blockHash: "",
+            validatorIndex: vote.validatorIndex.toString()
           },
           children: [],
+          expanded: Number(round) === 0
         };
-        node.children?.push(stepNode);
+        roundsVote.push(nodeVote);
+
       }
+      nodeRound.children = roundsVote;
+      rounds.push(nodeRound);
 
-      // const value = this.block.rounds[round][step];
-      // for (const v of value) {
-      //   stepNode.children?.push({
-      //     validator: v.validator,
-      //     timestamp: v.timestamp,
-      //     type: 'Application',
-      //   });
-      // }
     }
-
-    console.log(rounds);
+    console.log("nodeTree._rounds:", rounds);
     return rounds;
   }
 
@@ -88,9 +118,9 @@ export class AppComponent implements OnInit {
     return this._rounds;
   }
 
-  getPrevotes(round: string) {
+  getPrevotes(round: string): Vote[] {
     if (this.block) {
-      return this.block.votes.prevote[round];
+      return this.block.rounds[round].prevote;
     } else {
       return [];
     }
@@ -105,10 +135,40 @@ export class AppComponent implements OnInit {
   }
 
   private getCommits(blockHeight: number) {
-    return this.getHttp(baseUrlRpc + 'commit?height=' + blockHeight);
+    return this.getHttp(baseUrlRpc + "commit?height=" + blockHeight);
   }
 
   private getHttp(url: string) {
     return this.http.get(url);
+  }
+
+  loadBlockHeight() {
+    if (this.inputBlockHeight) {
+      const obsConsensus = this.getConsensus(this.inputBlockHeight);
+      const obsCommit = this.getCommits(this.inputBlockHeight);
+
+      forkJoin([obsConsensus, obsCommit]).subscribe((result: any[]) => {
+        console.log("forkJoin.result:", result);
+        this.block = result[0];
+        this.rpcBlock = result[1].result.signed_header;
+        this._rounds = Object.keys(this.block.rounds); //  wenn mehrere Rounden stattfinden
+
+        this.treeTableValue = this.nodeHeightTree;
+      });
+    }
+
+  }
+
+  onNodeExpand(event: TreeTableNodeExpandEvent) {
+    console.log('onNodeExpand', event.node);
+    if (event?.node?.children) {
+    //  event.node.children.forEach(
+    //    (value) => (value.expanded = event.node.expanded),
+    //  );
+    }
+  }
+
+  expandNode($event: any, col: any) {
+    
   }
 }

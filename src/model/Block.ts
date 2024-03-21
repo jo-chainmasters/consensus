@@ -1,6 +1,7 @@
 export interface Block {
   height: number;
   rounds: { [key: number]: Round };
+
   validatorSet?: any[];
 }
 
@@ -14,6 +15,8 @@ export interface Pre extends Vote {
   validatorHash: string;
   validatorIndex: number;
 }
+
+
 
 export interface Prevote extends Pre {
 }
@@ -33,8 +36,11 @@ export enum CommitType {
   UNKNOWN = 'BLOCK_ID_FLAG_UNKNOWN',
 }
 
+
 export interface Round {
   prevotes: Prevote[];
   precommits: Precommit[];
   commits: Commit[];
+  prevote: Prevote[];
+  precommit: Precommit[];
 }

@@ -1,3 +1,4 @@
+
 import { Injectable, Logger } from "@nestjs/common";
 import { WebSocket } from "ws";
 import { Connection } from "mongoose";
@@ -7,6 +8,7 @@ import { HttpService } from "@nestjs/axios";
 import { map } from "rxjs";
 import { fromBase64, fromHex, toBase64, toBech32, toHex } from "@cosmjs/encoding";
 import { encodeBech32Pubkey } from "@cosmjs/launchpad";
+
 
 
 
@@ -152,7 +154,7 @@ export class MyWebSocketClient {
       if (newRoundStep.step === "RoundStepNewHeight") {
         this.blocks[newRoundStep.height] = {
           height: newRoundStep.height,
-          rounds: {}
+          rounds: {},
         };
 
         const pHeight = newRoundStep.height - 2;
@@ -167,10 +169,14 @@ export class MyWebSocketClient {
       if (this.blocks[message.result.data.value.height]) {
         this.blocks[message.result.data.value.height].rounds[
           message.result.data.value.round
-          ] = {
+
+        ] = {
+
           prevotes: [],
           precommits: [],
-          commits: []
+          commits: [],
+          prevote: [],
+          precommit: [],
         };
       }
     } else if (message.result.query === "tm.event='CompleteProposal'") {
@@ -216,11 +222,11 @@ export class MyWebSocketClient {
           blockHash: vote.block,
           timestamp: vote.timestamp,
           validatorHash: vote.validatorHash,
-          validatorIndex: vote.validatorIndex
+          validatorIndex: vote.validatorIndex,
         } as Vote);
       }
     } else {
-      console.log(message);
+      console.log('Messenge', message);
     }
   }
 
