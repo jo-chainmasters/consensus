@@ -41,6 +41,4 @@ export interface Round {
   prevotes: Prevote[];
   precommits: Precommit[];
   commits: Commit[];
-  prevote: Prevote[];
-  precommit: Precommit[];
 }

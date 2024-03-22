@@ -183,15 +183,10 @@ export class MyWebSocketClient {
 
       if (this.blocks[message.result.data.value.height]) {
         this.blocks[message.result.data.value.height].rounds[
-          message.result.data.value.round
-
-        ] = {
-
+          message.result.data.value.round] = {
           prevotes: [],
           precommits: [],
-          commits: [],
-          prevote: [],
-          precommit: [],
+          commits: []
         };
       }
     } else if (message.result.query === "tm.event='CompleteProposal'") {

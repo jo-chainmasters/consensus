@@ -2,7 +2,7 @@
 
 <input pInputText [(ngModel)]="inputBlockHeight" [placeholder]='9727991'>
 <p-button label=">" (onClick)="loadBlockHeight()"></p-button>
-<p-treeTable  [value]="treeTableValue"  [columns]="cols"  (onNodeExpand)="onNodeExpand($event)">
+<p-treeTable [value]="treeTableValue" [columns]="cols" (onNodeExpand)="onNodeExpand($event)">
 
   <ng-template pTemplate="header" let-columns>
     <tr>
@@ -12,13 +12,18 @@
       </th>
     </tr>
   </ng-template>
-
+  <ng-template pTemplate="emptymessage">No Data found</ng-template>
 
   <ng-template pTemplate="body" let-rowNode let-rowData="rowData" let-columns="columns">
     <tr [ttRow]="rowNode">
       <td *ngFor="let col of columns; let i = index">
-        <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0" ></p-treeTableToggler>
-        {{ rowData[col.field] }}
+        <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0"></p-treeTableToggler>
+        <div *ngIf="!col.type">
+          {{ rowData[col.field] }}
+        </div>
+        <div *ngIf="col.type&&rowData[col.field]">
+          <p-tag [value]="rowData[col.field]" [severity]="getSeverity(rowData[col.field])"></p-tag>
+        </div>
       </td>
     </tr>
   </ng-template>

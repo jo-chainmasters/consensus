@@ -10,8 +10,9 @@ import { TreeNode } from "primeng/api";
 import { InputTextModule } from "primeng/inputtext";
 import { FormsModule } from "@angular/forms";
 import { ButtonModule } from "primeng/button";
-import { Round, Vote } from "../../../src/model/Block";
+import { Round, Commit, Pre, CommitType } from "../../../src/model/Block";
 import { NgForOf, NgIf } from "@angular/common";
+import { TagModule } from "primeng/tag";
 
 const baseUrlApp = "http://localhost:4000/blocks/";
 const baseUrlRpc = "https://rpc1.unification.io/";
@@ -20,6 +21,7 @@ const baseUrlRest = "https://rest.unification.io/";
 interface Column {
   field: string;
   header: string;
+  type: boolean;
 }
 
 @Component({
@@ -35,7 +37,8 @@ interface Column {
     FormsModule,
     ButtonModule,
     NgForOf,
-    NgIf
+    NgIf,
+    TagModule
   ],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.css"
@@ -55,13 +58,11 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.cols = [
-      { field: "round", header: "Round" },
-      { field: "prevote", header: "prevote" },
-      { field: "precommit", header: "precommit" },
-      { field: "validatorHash", header: "validatorHash" },
-      { field: "blockHash", header: "blockHash" },
-      { field: "Timestamp", header: "Timestamp" },
-      { field: "validatorIndex", header: "validatorIndex" }
+      { field: "round", header: "Round", type: false  },
+      { field: "validator", header: "validator", type: false   },
+      { field: "validatorMoniker", header: "validatorMoniker", type: false  },
+      { field: "blocktyp", header: "blocktyp", type: true  },
+      { field: "Timestamp", header: "Timestamp", type: false  }
     ];
 
   }
@@ -76,29 +77,25 @@ export class AppComponent implements OnInit {
         key: round,
         data: {
           round: round,
-          prevote: "prevote",
-          precommit: "precommit",
-          validatorHash: "",
+          validator: "",
           timestamp: "",
-          blockHash: "",
-          validatorIndex: ""
+          validatorMoniker: "",
+          blocktyp:''
         },
         children: [],
         expanded: Number(round) === 0
       };
       roundsVote = [];
-      for (const vote of this.getPrevotes(round)) {
+      for (const pre of this.getCommitsByRound(round)) {
 
         const nodeVote: TreeNode = {
-          key: round + "-" + vote.validatorIndex,
+          key: round + "-" + pre.blockHash,
           data: {
             round: "",
-            prevote: "",
-            precommit: "",
-            validatorHash: vote.validatorHash.toString(),
-            timestamp: vote.timestamp,
-            blockHash: "",
-            validatorIndex: vote.validatorIndex.toString()
+            validator: pre.validatorDetails?.moniker,
+            timestamp: pre.timestamp,
+            validatorMoniker: pre.validatorMoniker,
+            blocktyp: pre.commitType
           },
           children: [],
           expanded: Number(round) === 0
@@ -118,7 +115,7 @@ export class AppComponent implements OnInit {
     return this._rounds;
   }
 
-  getPrevotes(round: string): Vote[] {
+  getPrevotes(round: string): Pre[] {
     if (this.block) {
       return this.block.rounds[round].prevote;
     } else {
@@ -126,8 +123,13 @@ export class AppComponent implements OnInit {
     }
   }
 
-  get commits() {
-    return this.rpcBlock.commit.signatures;
+
+  getCommitsByRound(round: string): Commit[] {
+    if (this.block) {
+      return this.block.rounds[round].commits;
+    } else {
+      return [];
+    }
   }
 
   private getConsensus(blockHeight: number) {
@@ -151,7 +153,7 @@ export class AppComponent implements OnInit {
         console.log("forkJoin.result:", result);
         this.block = result[0];
         this.rpcBlock = result[1].result.signed_header;
-        this._rounds = Object.keys(this.block.rounds); //  wenn mehrere Rounden stattfinden
+        this._rounds = Object.keys(this.block?.rounds); //  wenn mehrere Rounden stattfinden
 
         this.treeTableValue = this.nodeHeightTree;
       });
@@ -168,7 +170,15 @@ export class AppComponent implements OnInit {
     }
   }
 
-  expandNode($event: any, col: any) {
-    
+  getSeverity(commitType: CommitType) {
+    switch (commitType) {
+      case CommitType.COMMIT:
+        return 'success';
+      case CommitType.ABSENT:
+        return 'warning';
+      case CommitType.NIL:
+      case CommitType.UNKNOWN:
+        return 'danger';
+    }
   }
 }
