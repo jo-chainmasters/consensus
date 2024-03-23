@@ -2,11 +2,15 @@
 
 <input pInputText [(ngModel)]="inputBlockHeight" [placeholder]='9727991'>
 <p-button label=">" (onClick)="loadBlockHeight()"></p-button>
-<p-treeTable [value]="treeTableValue" [columns]="cols" (onNodeExpand)="onNodeExpand($event)">
+<p-treeTable [value]="treeTableValue"
+             [columns]="cols"
+             (onNodeExpand)="onNodeExpand($event)"
+             [resizableColumns]="true"
+>
 
-  <ng-template pTemplate="header" let-columns>
+  <ng-template pTemplate="header" let-columns >
     <tr>
-      <th *ngFor="let col of columns" [ttSortableColumn]="col.field">
+      <th *ngFor="let col of columns" [ttSortableColumn]="col.field" ttResizableColumn>
         {{ col.header }}
         <p-treeTableSortIcon [field]="col.field"></p-treeTableSortIcon>
       </th>
