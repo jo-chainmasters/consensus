@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { WebSocket } from "ws";
 import { Connection } from "mongoose";
 import { InjectConnection } from "@nestjs/mongoose";
-import { Block, CommitType, Vote } from "./model/Block";
+import { Block, CommitType, getBondStatus, Validator, Vote } from "./model/Block";
 import { HttpService } from "@nestjs/axios";
 import { map } from "rxjs";
 import { fromBase64, fromHex, toBech32 } from "@cosmjs/encoding";
@@ -79,62 +79,100 @@ export class MyWebSocketClient {
 
   private async persistBlock(height: number) {
     const block = this.blocks[height];
-    if (block) {
-      this.getValidatorSetAtHeight(block.height).subscribe((validators) => {
-        block.validatorSet = validators;
-        this.getBlock(block.height).subscribe((cosmosBlock) => {
+    if (!block)
+      return;
 
-          this.getHistoricalValidatorSetAtHeight(height).subscribe(hist => {
+    const validators = await this.getValidatorSetAtHeight(block.height).toPromise() as any[];
+    const cosmosBlock = await this.getBlock(block.height).toPromise();
+    const hist = await this.getHistoricalValidatorSetAtHeight(block.height).toPromise();
+    block.validatorSet = {};
 
-            //     block.rounds[cosmosBlock.block.last_commit.round].commits = [];
-            for (
-              let i = 0;
-              i < cosmosBlock.block.last_commit.signatures.length;
-              i++
-            ) {
-              const signature = cosmosBlock.block.last_commit.signatures[i];
-              const validator = this.getValidatorByConsensusAddress(validators, toBech32("undvalcons", fromBase64(signature.validator_address)));
-              const validatorHist = this.getValidatorDetailsFromHistorical(hist, validator.pub_key);
+    // this.getValidatorSetAtHeight(block.height).subscribe((validators) => {
+    // this.getBlock(block.height).subscribe((cosmosBlock) => {
+    // this.getHistoricalValidatorSetAtHeight(height).subscribe(hist => {
+
+    for (let i = 0; i < hist.length; i++) {
+      const h = hist[i];
+
+      const validator: Validator = {
+        operatorAddress: h.operator_address,
+        publicKey: {
+          type: h.consensus_pubkey["@type"],
+          key: h.consensus_pubkey.key
+        },
+        jailed: h.jailed,
+        bondStatus: getBondStatus(h.status),
+        tokens: Number(h.tokens),
+        delegatorShares: Number(h.delegator_shares),
+        name: h.description.moniker,
+        identity: h.description.identity,
+        website: h.description.website,
+        emailAddress: h.description.security_contact,
+        description: h.description.details,
+        unbondingHeight: Number(h.unbonding_height),
+        unbondingTimestamp: new Date(h.unbonding_time),
+        commission: {
+          rate: Number(h.commission.commission_rates.rate),
+          maxRate: Number(h.commission.commission_rates.max_rate),
+          changeRate: Number(h.commission.commission_rates.max_change_rate),
+          updateTimestamp: new Date(h.commission.update_time)
+        },
+        minSelfDelegation: Number(h.min_self_delegation)
+      };
+      block.validatorSet[validator.operatorAddress] = validator;
+      block.validatorSet[validator.publicKey.key] = validator;
+    }
+
+    for (let j = 0; j < validators.length; j++) {
+      const tv = validators[j];
+      block.validatorSet[tv.pub_key.key].consensusAddress = tv.address;
+      block.validatorSet[tv.pub_key.key].votingPower = Number(tv.voting_power);
+      block.validatorSet[tv.pub_key.key].proposerPriority = Number(tv.proposer_priority);
+      block.validatorSet[tv.address] = block.validatorSet[tv.pub_key.key];
+    }
+
+    //     block.rounds[cosmosBlock.block.last_commit.round].commits = [];
+    for (let i = 0; i < cosmosBlock.block.last_commit.signatures.length; i++ ) {
+      const signature = cosmosBlock.block.last_commit.signatures[i];
+
+      // const validator = this.getValidatorByConsensusAddress(validators, toBech32("undvalcons", fromBase64(signature.validator_address)));
+      const consensusAddress = toBech32("undvalcons", fromBase64(signature.validator_address));
+      const validator = block.validatorSet[consensusAddress];
+
+      // const validatorHist = this.getValidatorDetailsFromHistorical(hist, validator.pub_key);
 
 
-              block.rounds[cosmosBlock.block.last_commit.round].commits.push({
-                blockHash: Buffer.from(
-                  atob(cosmosBlock.block_id.hash),
-                  "binary"
-                ).toString("hex"),
-                validatorMoniker: "n/A",
-                timestamp: Number(signature.timestamp),
-                validatorDetails: validatorHist,
-                // validatorAddress: signature.validator_address,
-                commitType: this.valueOfCommitType(signature.block_id_flag)
-              });
-            }
-
-
-            const rounds = Object.keys(block.rounds);
-            for (let roundNumber of rounds) {
-              const round = block.rounds[Number(roundNumber)];
-              for (let i = 0; i < round.prevotes.length; i++) {
-                const prevote = round.prevotes[i];
-                const consensusAddress = this.validatorHashToConsensusAddress(prevote.validatorHash);
-                const someVali = this.getValidatorByConsensusAddress(block.validatorSet, consensusAddress);
-                block.rounds[Number(roundNumber)].prevotes[i].validatorDetails = this.getValidatorDetailsFromHistorical(hist, someVali.pub_key)
-              }
-              for (let i = 0; i < round.precommits.length; i++) {
-                const precommit = round.precommits[i];
-                const consensusAddress = this.validatorHashToConsensusAddress(precommit.validatorHash);
-                const someVali = this.getValidatorByConsensusAddress(block.validatorSet, consensusAddress);
-                block.rounds[Number(roundNumber)].precommits[i].validatorDetails = this.getValidatorDetailsFromHistorical(hist, someVali.pub_key)
-              }
-            }
-
-            const collection = this.connection.collection("consensus");
-            collection.insertOne(block).then();
-          });
-
-        });
+      block.rounds[cosmosBlock.block.last_commit.round].commits.push({
+        blockHash: Buffer.from(
+          atob(cosmosBlock.block_id.hash),
+          'binary',
+        ).toString('hex'),
+        timestamp: new Date(signature.timestamp),
+        commitType: this.valueOfCommitType(signature.block_id_flag),
+        validator: validator,
       });
     }
+
+    const rounds = Object.keys(block.rounds);
+    for (let roundNumber of rounds) {
+      const round = block.rounds[Number(roundNumber)];
+      for (let i = 0; i < round.prevotes.length; i++) {
+        const prevote = round.prevotes[i];
+        const consensusAddress = this.validatorHashToConsensusAddress(prevote.validatorHash);
+        const someVali = block.validatorSet[consensusAddress];
+        block.rounds[Number(roundNumber)].prevotes[i].validator = someVali;
+      }
+      for (let i = 0; i < round.precommits.length; i++) {
+        const precommit = round.precommits[i];
+        const consensusAddress = this.validatorHashToConsensusAddress(precommit.validatorHash);
+        const someVali = block.validatorSet[consensusAddress];
+        block.rounds[Number(roundNumber)].precommits[i].validator = someVali;
+      }
+    }
+
+    const collection = this.connection.collection("consensus");
+    collection.insertOne(block).then();
+
   }
 
   private getValidatorByConsensusAddress(validatorSet, address) {
@@ -148,7 +186,7 @@ export class MyWebSocketClient {
 
   private getValidatorDetailsFromHistorical(hist, public_key) {
     for (let i = 0; i < hist.length; i++) {
-      if(hist[i].consensus_pubkey['@type'] === public_key['@type'] && hist[i].consensus_pubkey['key'] === public_key['key']) {
+      if (hist[i].consensus_pubkey["@type"] === public_key["@type"] && hist[i].consensus_pubkey["key"] === public_key["key"]) {
         return hist[i].description;
       }
     }
@@ -169,7 +207,7 @@ export class MyWebSocketClient {
       if (newRoundStep.step === "RoundStepNewHeight") {
         this.blocks[newRoundStep.height] = {
           height: newRoundStep.height,
-          rounds: {},
+          rounds: {}
         };
 
         const pHeight = newRoundStep.height - 2;
@@ -218,7 +256,7 @@ export class MyWebSocketClient {
         type,
         round: Number(message.result.data.value.Vote.round),
         block: message.result.data.value.Vote.block_id.hash,
-        timestamp: new Date(message.result.data.value.Vote.timestamp).getTime(),
+        timestamp: new Date(message.result.data.value.Vote.timestamp),
         validatorHash: message.result.data.value.Vote.validator_address,
         validatorIndex: Number(message.result.data.value.Vote.validator_index)
       };
@@ -232,11 +270,11 @@ export class MyWebSocketClient {
           blockHash: vote.block,
           timestamp: vote.timestamp,
           validatorHash: vote.validatorHash,
-          validatorIndex: vote.validatorIndex,
+          validatorIndex: vote.validatorIndex
         } as Vote);
       }
     } else {
-      console.log('Messenge', message);
+      console.log("Messenge", message);
     }
   }
 
