@@ -259,6 +259,15 @@ export class MyWebSocketClient {
       };
 
       if (this.blocks[vote.height]) {
+
+        if(!this.blocks[vote.height].rounds[vote.round]) {
+          this.blocks[vote.height].rounds[vote.round] = {
+            prevotes: [],
+            precommits: [],
+            commits: []
+          };
+        }
+
         if (!this.blocks[vote.height].rounds[vote.round][vote.type]) {
           this.blocks[vote.height].rounds[vote.round][vote.type] = [];
         }
