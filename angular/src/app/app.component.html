@@ -5,28 +5,34 @@
 <p-treeTable [value]="treeTableValue"
              [columns]="cols"
              (onNodeExpand)="onNodeExpand($event)"
-             [resizableColumns]="true"
->
-
-  <ng-template pTemplate="header" let-columns >
+             [scrollable]="true"
+             scrollHeight="350"
+             scrollWidth="600"
+             [tableStyle]="{ 'min-width': '50rem' }">
+  <ng-template pTemplate="header" let-columns>
     <tr>
-      <th *ngFor="let col of columns" [ttSortableColumn]="col.field" ttResizableColumn>
+      <th *ngFor="let col of columns; let i = index" [ttSortableColumn]="col.field">
         {{ col.header }}
         <p-treeTableSortIcon [field]="col.field"></p-treeTableSortIcon>
       </th>
     </tr>
   </ng-template>
+
+
   <ng-template pTemplate="emptymessage">No Data found</ng-template>
 
   <ng-template pTemplate="body" let-rowNode let-rowData="rowData" let-columns="columns">
     <tr [ttRow]="rowNode">
       <td *ngFor="let col of columns; let i = index">
-        <p-treeTableToggler [rowNode]="rowNode" *ngIf="i === 0"></p-treeTableToggler>
+        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='round'"></p-treeTableToggler>
+        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='commits'"></p-treeTableToggler>
+        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='prevotes'"></p-treeTableToggler>
+        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='precommits'"></p-treeTableToggler>
         <div *ngIf="!col.type">
           {{ rowData[col.field] }}
         </div>
         <div *ngIf="col.type&&rowData[col.field]">
-          <p-tag [value]="rowData[col.field]" [severity]="getSeverity(rowData[col.field])"></p-tag>
+          <p-tag [value]="rowData[col.field]" [severity]="getSeverityCommitType(rowData[col.field])"></p-tag>
         </div>
       </td>
     </tr>
