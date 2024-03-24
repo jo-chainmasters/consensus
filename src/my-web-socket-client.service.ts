@@ -83,7 +83,7 @@ export class MyWebSocketClient {
       return;
 
     const validators = await this.getValidatorSetAtHeight(block.height).toPromise() as any[];
-    const cosmosBlock = await this.getBlock(block.height).toPromise();
+    const cosmosBlock = await this.getBlock(block.height + 1).toPromise();
     const hist = await this.getHistoricalValidatorSetAtHeight(block.height).toPromise();
     block.validatorSet = {};
 
@@ -131,26 +131,23 @@ export class MyWebSocketClient {
       block.validatorSet[tv.address] = block.validatorSet[tv.pub_key.key];
     }
 
-    //     block.rounds[cosmosBlock.block.last_commit.round].commits = [];
     for (let i = 0; i < cosmosBlock.block.last_commit.signatures.length; i++ ) {
       const signature = cosmosBlock.block.last_commit.signatures[i];
+      const commitType = this.valueOfCommitType(signature.block_id_flag);
 
-      // const validator = this.getValidatorByConsensusAddress(validators, toBech32("undvalcons", fromBase64(signature.validator_address)));
-      const consensusAddress = toBech32("undvalcons", fromBase64(signature.validator_address));
-      const validator = block.validatorSet[consensusAddress];
-
-      // const validatorHist = this.getValidatorDetailsFromHistorical(hist, validator.pub_key);
-
-
-      block.rounds[cosmosBlock.block.last_commit.round].commits.push({
-        blockHash: Buffer.from(
-          atob(cosmosBlock.block_id.hash),
-          'binary',
-        ).toString('hex'),
-        timestamp: new Date(signature.timestamp),
-        commitType: this.valueOfCommitType(signature.block_id_flag),
-        validator: validator,
-      });
+      if (commitType !== CommitType.ABSENT) {
+        const consensusAddress = toBech32("undvalcons", fromBase64(signature.validator_address));
+        const validator = block.validatorSet[consensusAddress];
+        block.rounds[cosmosBlock.block.last_commit.round].commits.push({
+          blockHash: Buffer.from(
+            atob(cosmosBlock.block_id.hash),
+            'binary',
+          ).toString('hex'),
+          timestamp: new Date(signature.timestamp),
+          commitType,
+          validator,
+        });
+      }
     }
 
     const rounds = Object.keys(block.rounds);
@@ -262,6 +259,15 @@ export class MyWebSocketClient {
       };
 
       if (this.blocks[vote.height]) {
+
+        if(!this.blocks[vote.height].rounds[vote.round]) {
+          this.blocks[vote.height].rounds[vote.round] = {
+            prevotes: [],
+            precommits: [],
+            commits: []
+          };
+        }
+
         if (!this.blocks[vote.height].rounds[vote.round][vote.type]) {
           this.blocks[vote.height].rounds[vote.round][vote.type] = [];
         }
