@@ -1,5 +1,9 @@
 export interface Block {
   height: number;
+  hash?: string;
+  timestamp?: Date;
+  proposer?: Validator;
+  chainId?: string;
   rounds: { [key: number]: Round };
 
   validatorSet?: ValidatorSet;
