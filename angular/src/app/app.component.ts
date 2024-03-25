@@ -21,6 +21,7 @@ import {
 } from '../../../src/model/Block';
 import { NgClass, NgForOf, NgIf } from '@angular/common';
 import { TagModule } from 'primeng/tag';
+import { CutdotPipe } from '../directives/cutdot.pipe';
 
 const baseUrlApp = 'http://localhost:4000/blocks/';
 const baseUrlRpc = 'https://rpc1.unification.io/';
@@ -30,7 +31,8 @@ interface Column {
   field: string;
   header: string;
   type: boolean;
-  boundstate: boolean;
+  bondStatus: boolean;
+  hash: boolean;
 }
 
 @Component({
@@ -49,6 +51,7 @@ interface Column {
     NgIf,
     TagModule,
     NgClass,
+    CutdotPipe,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
@@ -62,62 +65,83 @@ export class AppComponent implements OnInit {
   inputBlockHeight = 9727991;
   cols: Column[] = [];
   treeTableValue: TreeNode[] = [];
+  maxRound = 0;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     this.cols = [
-      { field: 'round', header: 'Round', type: false, boundstate: false },
-      { field: 'commits', header: 'Commits', type: false, boundstate: false },
-      { field: 'precommits', header: 'Precommits', type: false, boundstate: false,      },
-      { field: 'prevotes', header: 'Prevotes', type: false, boundstate: false },
-      { field: 'name', header: 'Validator', type: false, boundstate: false,      },
+      {
+        field: 'round',
+        header: 'Round',
+        type: false,
+        bondStatus: false,
+        hash: false,
+      },
+      //{ field: 'commits', header: 'Commits', type: false, boundstate: false },
+      // { field: 'precommits', header: 'Precommits', type: false, boundstate: false,      },
+      //{ field: 'prevotes', header: 'Prevotes', type: false, boundstate: false },
+      {
+        field: 'name',
+        header: 'Validator',
+        type: false,
+        bondStatus: false,
+        hash: false,
+      },
       {
         field: 'timestamp',
         header: 'Timestamp',
         type: false,
-        boundstate: false,
+        bondStatus: false,
+        hash: false,
       },
       {
         field: 'blockHash',
         header: 'blockHash',
         type: false,
-        boundstate: false,
+        bondStatus: false,
+        hash: true,
       },
-      //   { field: 'validatorHash',  header: 'validatorHash',   type: false,    boundstate: false,      },
-      // { field: 'validatorIndex', header: 'validatorIndex', type: false,  boundstate: false,     },
-      //  { field: 'status', header: 'status', type: false, boundstate: false },
-      //  {field: 'operatorAddress', header: 'operatorAddress', type: false,  boundstate: false, },
+      //   { field: 'validatorHash',  header: 'validatorHash',   type: false,    bondStatus: false,      },
+      // { field: 'validatorIndex', header: 'validatorIndex', type: false,  bondStatus: false,     },
 
-      //  { field: 'identity', header: 'identity', type: false, boundstate: false },
-      //  { field: 'website', header: 'website', type: false, boundstate: false },
-      //  { field: 'emailAddress', header: 'emailAddress', type: false,boundstate: false, },
-      // { field: 'blocktyp', header: 'blocktyp', type: true, boundstate: false },
-      //{  field: 'bondStatus', header: 'BondStatus',type: true, boundstate: true, },
+      //  {field: 'operatorAddress', header: 'operatorAddress', type: false,  bondStatus: false, },
 
+      //  { field: 'identity', header: 'identity', type: false, bondStatus: false },
+      //  { field: 'website', header: 'website', type: false, bondStatus: false },
+      //  { field: 'emailAddress', header: 'emailAddress', type: false,bondStatus: false, },
+      {
+        field: 'blocktyp',
+        header: 'blocktyp',
+        type: true,
+        bondStatus: false,
+        hash: false,
+      },
+    {  field: 'bondStatus', header: 'BondStatus',  type: false,  bondStatus: true,  hash: false}
     ];
   }
 
   get nodeHeightTree() {
     const rounds: TreeNode[] = [];
-    const roundCommitNode: TreeNode<any> = this.initDefaultCommitsNode();
-    const roundPreCommitNode: TreeNode<any> = this.initDefaultPreCommitsNode();
-    const roundPreVoteNode: TreeNode<any> = this.initDefaultPreVoteNode();
+    let roundCommitNode: TreeNode<any> = {};
+    let roundPreCommitNode: TreeNode<any> = {};
+    let roundPreVoteNode: TreeNode<any> = {};
     let roundCommits: TreeNode<any>[] = [];
     let roundPrevote: TreeNode<any>[] = [];
     let roundPreCommits: TreeNode<any>[] = [];
 
     for (const round of this._rounds) {
+      roundCommitNode = this.initDefaultCommitsNode(round);
+      roundPreCommitNode = this.initDefaultPreCommitsNode(round);
+      roundPreVoteNode = this.initDefaultPreVoteNode(round);
       const nodeRound: TreeNode = {
         data: {
-          round: round,
-          commits: 'commits',
-          precommits: 'precommits',
-          prevotes: 'prevotes',
+          round: 'Round: ' + round,
           name: '',
           timestamp: '',
           blocktyp: '',
           blockHash: '',
+          bondStatus: ''
         },
         children: [],
         expanded: Number(round) === 0,
@@ -196,7 +220,7 @@ export class AppComponent implements OnInit {
         this.block = result[0];
         this.rpcBlock = result[1].result.signed_header;
         this._rounds = Object.keys(this.block?.rounds); //  wenn mehrere Rounden stattfinden
-
+        this.maxRound = this._rounds.length - 1;
         this.treeTableValue = this.nodeHeightTree;
       });
     }
@@ -215,25 +239,24 @@ export class AppComponent implements OnInit {
     switch (commitType) {
       case CommitType.COMMIT:
         return 'success';
-      case CommitType.ABSENT:
-        return 'warning';
       case CommitType.NIL:
+        return 'warning';
+      case CommitType.ABSENT:
       case CommitType.UNKNOWN:
         return 'danger';
     }
   }
 
   getSeverityBoundStatus(bondStatus: BondStatus) {
-    switch (bondStatus.toString()) {
-      case BondStatus.BONDED.toString():
+    switch (bondStatus) {
+      case BondStatus.BONDED:
         return 'success';
-      case BondStatus.UNBONDING.toString():
+      case BondStatus.UNBONDING:
         return 'warning';
-      case BondStatus.UNKNOWN.toString():
-      case BondStatus.UNBONDED.toString():
+      case BondStatus.UNKNOWN:
+      case BondStatus.UNBONDED:
         return 'danger';
     }
-    return '';
   }
 
   loadCommitsToTreeNode(round: string): TreeNode[] {
@@ -242,14 +265,11 @@ export class AppComponent implements OnInit {
       const nodeCommit: TreeNode = {
         data: {
           round: '',
-          commits: '>',
-          precommits: '',
-          prevotes: '',
           name: pre.validator?.name,
           timestamp: pre.timestamp,
           blocktyp: pre.commitType,
           blockHash: pre.blockHash,
-
+          bondStatus: pre.validator?.bondStatus
         },
         children: [],
         expanded: Number(round) === 0,
@@ -265,13 +285,11 @@ export class AppComponent implements OnInit {
       const nodeCommit: TreeNode = {
         data: {
           round: '',
-          commits: '',
-          precommits: '',
-          prevotes: '>',
           name: pre.validator?.name,
           timestamp: pre.timestamp,
           blocktyp: '',
           blockHash: pre.blockHash,
+          bondStatus: pre.validator?.bondStatus
         },
         children: [],
         expanded: Number(round) === 0,
@@ -283,17 +301,15 @@ export class AppComponent implements OnInit {
 
   private loadPreCommitToTreeNode(round: string) {
     const roundPreCommit: TreeNode<any>[] = [];
-    for (const pre of this.getPreVoteByRound(round)) {
+    for (const pre of this.getPreCommitsByRound(round)) {
       const nodeCommit: TreeNode = {
         data: {
           round: '',
-          commits: '',
-          precommits: '>',
-          prevotes: '',
           name: pre.validator?.name,
           timestamp: pre.timestamp,
           blocktyp: '',
           blockHash: pre.blockHash,
+          bondStatus: pre.validator?.bondStatus
         },
         children: [],
         expanded: Number(round) === 0,
@@ -303,51 +319,49 @@ export class AppComponent implements OnInit {
     return roundPreCommit;
   }
 
-  initDefaultCommitsNode() {
+  initDefaultCommitsNode(round: string) {
+    const count = this.getCommitsByRound(round)?.length;
     return {
       data: {
-        round: '',
-        commits: 'commit',
-        precommits: '',
-        prevotes: '',
+        round: 'commits' + '(' + count + ')',
         name: '',
         timestamp: '',
         blocktyp: '',
         blockHash: '',
+        bondStatus: ''
       },
       children: [],
       expanded: false,
     };
   }
 
-  initDefaultPreCommitsNode() {
+  initDefaultPreCommitsNode(round: string) {
+    const count = this.getPreCommitsByRound(round)?.length;
     return {
       data: {
-        round: '',
-        commits: '',
-        precommits: 'precommits',
-        prevotes: '',
+        round: 'precommits' + '(' + count + ')',
         name: '',
         timestamp: '',
         blocktyp: '',
         blockHash: '',
+        bondStatus: ''
+
       },
       children: [],
       expanded: false,
     };
   }
 
-  initDefaultPreVoteNode() {
+  initDefaultPreVoteNode(round: string) {
+    const count = this.getPreVoteByRound(round)?.length;
     return {
       data: {
-        round: '',
-        commits: '',
-        precommits: '',
-        prevotes: 'prevotes',
+        round: 'prevote' + '(' + count + ')',
         name: '',
         timestamp: '',
         blocktyp: '',
         blockHash: '',
+        bondStatus: ''
       },
       children: [],
       expanded: false,

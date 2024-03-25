@@ -1,4 +1,4 @@
-<app-block-header [blockHeader]="rpcBlock?.header"></app-block-header>
+<app-block-header [blockHeader]="rpcBlock?.header" [maxround]="maxRound"></app-block-header>
 
 <input pInputText [(ngModel)]="inputBlockHeight" [placeholder]='9727991'>
 <p-button label=">" (onClick)="loadBlockHeight()"></p-button>
@@ -7,12 +7,17 @@
              (onNodeExpand)="onNodeExpand($event)"
              [scrollable]="true"
              scrollHeight="350"
-             scrollWidth="600"
-             [tableStyle]="{ 'min-width': '50rem' }">
+             [tableStyle]="{ 'min-width': '50rem' }"
+             #treeTable>
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns; let i = index" [ttSortableColumn]="col.field">
-        {{ col.header }}
+        <div [style]="'max-width:50%'" *ngIf="col.field==='round'">
+          {{ col.header }}
+        </div>
+        <div [style]="'width:100%'" *ngIf="col.field!=='round'">
+          {{ col.header }}
+        </div>
         <p-treeTableSortIcon [field]="col.field"></p-treeTableSortIcon>
       </th>
     </tr>
@@ -25,14 +30,20 @@
     <tr [ttRow]="rowNode">
       <td *ngFor="let col of columns; let i = index">
         <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='round'"></p-treeTableToggler>
-        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='commits'"></p-treeTableToggler>
-        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='prevotes'"></p-treeTableToggler>
-        <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='precommits'"></p-treeTableToggler>
-        <div *ngIf="!col.type">
-          {{ rowData[col.field] }}
+        <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='commits'"></p-treeTableToggler>-->
+        <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='prevotes'"></p-treeTableToggler>-->
+        <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='precommits'"></p-treeTableToggler>-->
+        <div *ngIf="!col.type && !col.hash && !col.bondStatus">
+          {{ rowData[col.field]}}
         </div>
-        <div *ngIf="col.type&&rowData[col.field]">
+        <div *ngIf="col.hash">
+          {{ rowData[col.field] | cutdot }}
+        </div>
+        <div *ngIf="col.type && rowData[col.field]">
           <p-tag [value]="rowData[col.field]" [severity]="getSeverityCommitType(rowData[col.field])"></p-tag>
+        </div>
+        <div *ngIf="col.bondStatus && rowData[col.field]">
+          <p-tag [value]="rowData[col.field]" [severity]="getSeverityBoundStatus(rowData[col.field])"></p-tag>
         </div>
       </td>
     </tr>

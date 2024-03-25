@@ -51,7 +51,10 @@ export interface Validator {
 }
 
 export enum BondStatus {
-  BONDED, UNBONDED, UNBONDING, UNKNOWN
+  BONDED='BONDED',
+  UNBONDED='UNBONDED',
+  UNBONDING='UNBONDING',
+  UNKNOWN='UNKNOWN'
 }
 
 export interface PublicKey {

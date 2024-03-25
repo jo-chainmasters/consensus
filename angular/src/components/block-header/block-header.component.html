@@ -1,10 +1,26 @@
 
 <p-card *ngIf="blockHeader" header="{{blockHeader.height}} - {{blockHeader.hash}}">
-  chain-id: {{blockHeader.chain_id}}
-  timestamp: {{blockHeader.time}}
-  proposer: {{blockHeader.proposer_address}}
-  round: TODO
-  validators-hash: {{blockHeader.validators_hash}}
+  <span class="flex flex-column gap-2">
+    <label for="chain_id"> Chain ID: </label>
+    <input pInputText id="chain_id" [value]="blockHeader.chain_id " disabled/>
+</span>
+  <span class="flex flex-column gap-2">
+    <label for="timestamp">Timestamp: </label>
+    <input pInputText id="timestamp" [value]="blockHeader.time" disabled/>
+</span>
+  <span class="flex flex-column gap-2">
+    <label for="proposer"> Proposer: </label>
+    <input pInputText id="proposer" [value]="blockHeader.proposer_address |cutdot" disabled />
+</span>
+  <span class="flex flex-column gap-2">
+    <label for="round"> Round: </label>
+    <input pInputText id="round" [value]="maxround"  disabled/>
+</span>
+  <span class="flex flex-column gap-2">
+    <label for="validators-hash"> Validators-hash: </label>
+    <input pInputText id="validators-hash" [value]="blockHeader.validators_hash |cutdot" disabled />
+</span>
+
 
 <!--  <p-card header="DEBUG">-->
 <!--    <pre>{{blockHeader | json}}</pre>-->
