@@ -7,15 +7,14 @@
              (onNodeExpand)="onNodeExpand($event)"
              [scrollable]="true"
              scrollHeight="350"
-             [tableStyle]="{ 'min-width': '50rem' }"
              #treeTable>
   <ng-template pTemplate="header" let-columns>
     <tr>
       <th *ngFor="let col of columns; let i = index" [ttSortableColumn]="col.field">
-        <div [style]="'max-width:50%'" *ngIf="col.field==='round'">
+        <div [style]="{'width': '30px'}" *ngIf="col.field==='round'">
           {{ col.header }}
         </div>
-        <div [style]="'width:100%'" *ngIf="col.field!=='round'">
+        <div  *ngIf="col.field!=='round'">
           {{ col.header }}
         </div>
         <p-treeTableSortIcon [field]="col.field"></p-treeTableSortIcon>
@@ -33,7 +32,7 @@
         <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='commits'"></p-treeTableToggler>-->
         <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='prevotes'"></p-treeTableToggler>-->
         <!--  <p-treeTableToggler [rowNode]="rowNode" *ngIf="col.field==='precommits'"></p-treeTableToggler>-->
-        <div *ngIf="!col.type && !col.hash && !col.bondStatus">
+        <div  *ngIf="!col.type && !col.hash && !col.bondStatus">
           {{ rowData[col.field]}}
         </div>
         <div *ngIf="col.hash">
