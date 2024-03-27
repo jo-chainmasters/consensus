@@ -94,7 +94,6 @@ export class MyWebSocketClient {
     block.hash = toHex(fromBase64(cosmosBlock.block.header.last_block_id.hash));
     block.timestamp = new Date(cosmosBlock.block.header.time);
 
-
     const hist = await this.getHistoricalValidatorSetAtHeight(
       block.height,
     ).toPromise();
@@ -190,26 +189,6 @@ export class MyWebSocketClient {
 
     const collection = this.connection.collection('consensus');
     collection.insertOne(block).then();
-  }
-
-  private getValidatorByConsensusAddress(validatorSet, address) {
-    for (let i = 0; i < validatorSet.length; i++) {
-      const validator = validatorSet[i];
-      if (validator.address === address) {
-        return validator;
-      }
-    }
-  }
-
-  private getValidatorDetailsFromHistorical(hist, public_key) {
-    for (let i = 0; i < hist.length; i++) {
-      if (
-        hist[i].consensus_pubkey['@type'] === public_key['@type'] &&
-        hist[i].consensus_pubkey['key'] === public_key['key']
-      ) {
-        return hist[i].description;
-      }
-    }
   }
 
   private processMessage(message: any): void {
@@ -372,5 +351,33 @@ export class MyWebSocketClient {
     const bech32Prefix = 'undvalcons';
     const bech32Pubkey = toBech32(bech32Prefix, fromHex(hash));
     return bech32Pubkey;
+  }
+
+  async getBlocksFromDatabaseByRange(since: Date) {
+    const collection = this.connection.collection('consensus');
+    const blockLst = await collection
+      .find({
+        timestamp: { $gte: since },
+      })
+      .toArray();
+    return blockLst;
+
+    // for (const blockLstKey in blockLst) {
+    //   console.log(blockLst[blockLstKey].timestamp);
+    // }
+  }
+
+  async getBlocksOfLast(seconds: number) {
+    const sinceDate = new Date(Date.now() - seconds);
+    return await this.getBlocksFromDatabaseByRange(sinceDate);
+  }
+
+  async getBlocksLastHour() {
+    const now = Date.now();
+    // const since = 1000 * 60 * 60 * 24 * 7 * 52; // 1 year
+    const since = 1000 * 60 * 60; // 1 hour
+    const sinceDate = new Date(now - since);
+    await this.getBlocksFromDatabaseByRange(sinceDate);
+
   }
 }
